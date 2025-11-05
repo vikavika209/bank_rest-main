@@ -63,4 +63,30 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
+
+    @ExceptionHandler(CardNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> CardNotFoundExceptionHandler(Exception e){
+        log.error("Обнаружено Card Not Found Exception: {}", e.getMessage());
+
+        var errorDto = new ErrorResponseDto(
+                "Карта не найдена",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto);
+    }
+
+    @ExceptionHandler(CardNumberIsNotFree.class)
+    public ResponseEntity<ErrorResponseDto> CardNumberIsNotFreeHandler(Exception e){
+        log.error("Обнаружено Card Number Is Not Free: {}", e.getMessage());
+
+        var errorDto = new ErrorResponseDto(
+                "Номер карты не свободен",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorDto);
+    }
 }

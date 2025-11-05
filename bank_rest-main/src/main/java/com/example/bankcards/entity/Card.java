@@ -45,12 +45,4 @@ public class Card {
     @DecimalMin(value = "0.00", inclusive = true)
     private BigDecimal balance;
 
-    @Transient
-    public String getMaskedNumber(String decryptedNumber) {
-        if (decryptedNumber == null || decryptedNumber.length() < 4) {
-            return "****";
-        }
-        String last4 = decryptedNumber.substring(decryptedNumber.length() - 4);
-        return "**** **** **** " + last4;
-    }
 }

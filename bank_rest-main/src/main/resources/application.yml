@@ -6,3 +6,12 @@
   - Указать порт приложения.
   - Настроить параметры безопасности и JWT.
   - Включить Swagger UI.
+
+
+card:
+  crypto:
+    key: ${CARD_CRYPTO_KEY}
+    transformation: AES/ECB/PKCS5Padding
+    validity: ${CARD_VALIDITY_PERIOD:36}
+
+
