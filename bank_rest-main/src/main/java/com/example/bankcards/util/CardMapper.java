@@ -1,6 +1,5 @@
 package com.example.bankcards.util;
 
-import com.example.bankcards.dto.CardRequestDto;
 import com.example.bankcards.dto.CardResponseDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.service.CryptoService;

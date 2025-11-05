@@ -1,7 +1,8 @@
 package com.example.bankcards.service;
 
-import com.example.bankcards.dto.CardRequestDto;
+import com.example.bankcards.dto.CardCrateDto;
 import com.example.bankcards.dto.CardResponseDto;
+import com.example.bankcards.dto.CardUpdateDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
@@ -62,11 +63,11 @@ public class CardService {
         return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
-    public CardResponseDto create(CardRequestDto cardRequestDto) {
-        User user = userRepository.findById(cardRequestDto.getUserId())
-                .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + cardRequestDto.getUserId()));
+    public CardResponseDto create(CardCrateDto cardCrateDto) {
+        User user = userRepository.findById(cardCrateDto.getUserId())
+                .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + cardCrateDto.getUserId()));
 
-        String encrypted = cryptoService.encrypt(cardRequestDto.getCardNumber());
+        String encrypted = cryptoService.encrypt(cardCrateDto.getCardNumber());
 
         if (cardRepository.existsByCardNumberEncrypted(encrypted).isPresent()) {
             throw new CardNumberIsNotFree("Карта уже существует: {}");
@@ -74,16 +75,10 @@ public class CardService {
 
         Card card = Card.builder()
                 .balance(BigDecimal.ZERO)
-                .expiryDate(cardRequestDto.getExpiryDate() == null
-                        ? getExpiryDate()
-                        : cardRequestDto.getExpiryDate()
-                )
+                .expiryDate(getExpiryDate())
                 .cardNumberEncrypted(encrypted)
                 .user(user)
-                .status(cardRequestDto.getStatus() == null
-                        ? CardStatus.ACTIVE
-                        : cardRequestDto.getStatus()
-                )
+                .status(CardStatus.ACTIVE)
                 .build();
 
         Card saved = cardRepository.save(card);
@@ -93,7 +88,7 @@ public class CardService {
     }
 
     @Transactional
-    public CardResponseDto update(Long id, CardRequestDto dto) {
+    public CardResponseDto update(Long id, CardUpdateDto dto) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + id));
 
@@ -107,6 +102,7 @@ public class CardService {
         applyIfChanged(dto.getExpiryDate(), card::getExpiryDate, card::setExpiryDate, "Срок действия обновлён: {}");
         applyIfChanged(dto.getBalance(),     card::getBalance,    card::setBalance,    "Баланс обновлён: {}");
         applyIfChanged(dto.getStatus(),      card::getStatus,     card::setStatus,     "Статус обновлён: {}");
+
 
         if (dto.getCardNumber() != null) {
             String currentPlain = cryptoService.decrypt(card.getCardNumberEncrypted());

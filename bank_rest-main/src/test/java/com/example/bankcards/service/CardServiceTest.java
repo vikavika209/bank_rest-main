@@ -1,8 +1,9 @@
 package com.example.bankcards.service;
 
 
-import com.example.bankcards.dto.CardRequestDto;
+import com.example.bankcards.dto.CardCrateDto;
 import com.example.bankcards.dto.CardResponseDto;
+import com.example.bankcards.dto.CardUpdateDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
@@ -65,13 +66,6 @@ class CardServiceTest {
         return c;
     }
 
-    private CardRequestDto stubReq(Long userId) {
-        CardRequestDto req = new CardRequestDto();
-        req.setUserId(userId);
-        req.setCardNumber("4111111111111111");
-        req.setStatus(CardStatus.ACTIVE);
-        return req;
-    }
 
     @Test
     @DisplayName("getById — возвращает DTO, если карта найдена")
@@ -124,7 +118,11 @@ class CardServiceTest {
     @Test
     @DisplayName("create — успешно создает карту: шифрует номер, устанавливает expiry по validity, баланс=0, статус по умолчанию ACTIVE")
     void create_ok() {
-        CardRequestDto req = stubReq(10L);
+        CardCrateDto req = CardCrateDto.builder()
+                .cardNumber("4111111111111111")
+                .userId(10L)
+                .build();
+
         User u = new User(); u.setId(10L);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(u));
@@ -158,7 +156,11 @@ class CardServiceTest {
     @Test
     @DisplayName("create — бросает CardNumberIsNotFree, если номер уже занят")
     void create_duplicateNumber() {
-        CardRequestDto req = stubReq(10L);
+        CardCrateDto req = CardCrateDto.builder()
+                .cardNumber("4111111111111111")
+                .userId(10L)
+                .build();
+
         User u = new User(); u.setId(10L);
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(u));
@@ -175,7 +177,10 @@ class CardServiceTest {
     @Test
     @DisplayName("create — бросает UserNotFoundCustomException, если userId неизвестен")
     void create_userNotFound() {
-        CardRequestDto req = stubReq(999L);
+        CardCrateDto req = CardCrateDto.builder()
+                .userId(999L)
+                .cardNumber("4111111111111111")
+                .build();
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(req))
@@ -189,7 +194,8 @@ class CardServiceTest {
         when(cardRepository.findById(5L)).thenReturn(Optional.of(existing));
 
         User newUser = new User(); newUser.setId(20L);
-        CardRequestDto dto = new CardRequestDto();
+
+        CardUpdateDto dto = new CardUpdateDto();
         dto.setUserId(20L);
         dto.setStatus(CardStatus.BLOCKED);
         dto.setBalance(new BigDecimal("123.45"));
@@ -224,7 +230,7 @@ class CardServiceTest {
     void update_notFound() {
         when(cardRepository.findById(777L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(777L, new CardRequestDto()))
+        assertThatThrownBy(() -> service.update(777L, new CardUpdateDto()))
                 .isInstanceOf(CardNotFoundException.class);
     }
 

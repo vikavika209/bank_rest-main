@@ -13,15 +13,13 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class CardRequestDto {
-
+public class CardUpdateDto {
     @Pattern(regexp = "\\d{16}", message = "Номер карты должен содержать 16 цифр")
     private String cardNumber;
 
-    @NotBlank(message = "Поле 'userId' не может быть пустым")
+    @Positive(message = "userId должен быть положительным")
     private Long userId;
 
-    @NotNull(message = "Поле 'expiryDate' обязательно")
     @Future(message = "Срок действия карты должен быть в будущем")
     private LocalDate expiryDate;
 
