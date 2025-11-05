@@ -4,17 +4,17 @@ import com.example.bankcards.dto.UserRequestDto;
 import com.example.bankcards.dto.UserResponseDto;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.exception.PasswordIsShortException;
+import com.example.bankcards.exception.UserNameNotFreeException;
+import com.example.bankcards.exception.UserNotFoundCustomException;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.UserMapper;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -85,7 +85,7 @@ class UserServiceTest {
         when(userRepository.getByUsername("vika")).thenReturn(Optional.of(new User()));
 
         Assertions.assertThrows(
-                IllegalArgumentException.class,
+                UserNameNotFreeException.class,
                 () -> userService.create(req)
         );
 
@@ -117,12 +117,12 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("getById() — если не найден, NoSuchElementException")
+    @DisplayName("getById() — если не найден, UserNotFoundCustomException")
     void getById_notFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         Assertions.assertThrows(
-                NoSuchElementException.class,
+                UserNotFoundCustomException.class,
                 () -> userService.getById(99L)
         );
     }
@@ -157,9 +157,10 @@ class UserServiceTest {
 
     @Test
     @DisplayName("updateUsername() — меняет логин, если свободен")
-    void updateUsername_ok() {
+    void update_ok() {
         UserRequestDto req = new UserRequestDto();
         req.setUsername("newname");
+        req.setPassword("password");
 
         User existing = new User();
         existing.setId(5L);
@@ -178,7 +179,7 @@ class UserServiceTest {
         dto.setId(5L); dto.setUsername("newname");
         when(userMapper.toDto(saved)).thenReturn(dto);
 
-        UserResponseDto res = userService.updateUsername(5L, req);
+        UserResponseDto res = userService.update(5L, req);
 
         Assertions.assertEquals(res.getUsername(), "newname");
         verify(userRepository).save(existing);
@@ -186,9 +187,10 @@ class UserServiceTest {
 
     @Test
     @DisplayName("updateUsername() — бросает, если новый логин занят")
-    void updateUsername_duplicate() {
+    void update_duplicate() {
         UserRequestDto req = new UserRequestDto();
         req.setUsername("newname");
+        req.setPassword("password");
 
         User existing = new User();
         existing.setId(5L);
@@ -198,8 +200,8 @@ class UserServiceTest {
         when(userRepository.getByUsername("newname")).thenReturn(Optional.of(new User()));
 
         Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> userService.updateUsername(5L, req)
+                UserNameNotFreeException.class,
+                () -> userService.update(5L, req)
         );
     }
 
@@ -221,7 +223,7 @@ class UserServiceTest {
         dto.setId(7L); dto.setUsername("vika");
         when(userMapper.toDto(saved)).thenReturn(dto);
 
-        UserResponseDto res = userService.updatePassword(7L, req);
+        UserResponseDto res = userService.update(7L, req);
 
         Assertions.assertEquals(existing.getPassword(), "ENC(newpass)");
         Assertions.assertEquals(res.getId(), 7L);
@@ -237,8 +239,8 @@ class UserServiceTest {
         req.setPassword("12345");
 
         Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> userService.updatePassword(1L, req)
+                PasswordIsShortException.class,
+                () -> userService.update(1L, req)
         );
 
         verifyNoInteractions(userRepository, passwordEncoder, userMapper);
@@ -359,7 +361,7 @@ class UserServiceTest {
         when(userRepository.existsById(16L)).thenReturn(false);
 
         Assertions.assertThrows(
-                NoSuchElementException.class,
+                UserNotFoundCustomException.class,
                 () -> userService.delete(16L)
         );
 

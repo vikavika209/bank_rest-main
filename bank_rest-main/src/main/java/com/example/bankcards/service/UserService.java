@@ -4,6 +4,9 @@ import com.example.bankcards.dto.UserRequestDto;
 import com.example.bankcards.dto.UserResponseDto;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.exception.PasswordIsShortException;
+import com.example.bankcards.exception.UserNameNotFreeException;
+import com.example.bankcards.exception.UserNotFoundCustomException;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +37,7 @@ public class UserService {
     public UserResponseDto create(UserRequestDto dto) {
         if (existsByUsername(dto.getUsername())) {
             log.error("Пользователь с таким логином уже существует: {}", dto.getUsername());
-            throw new IllegalArgumentException("Пользователь с таким логином уже существует");
+            throw new UserNameNotFreeException("Пользователь с таким логином уже существует");
         }
 
         User user = new User();
@@ -54,7 +57,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Пользователь не найден: id = {}", id);
-                    return new NoSuchElementException("Пользователь не найден: " + id);
+                    return new UserNotFoundCustomException("Пользователь не найден: " + id);
                 });
         return userMapper.toDto(user);
     }
@@ -70,9 +73,17 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateUsername(Long id, UserRequestDto dto) {
+    public UserResponseDto update(Long id, UserRequestDto dto) {
+
+        if (dto.getPassword() == null || dto.getPassword().length() < 6) {
+            log.error("Пароль должен содержать минимум 6 символов");
+            throw new PasswordIsShortException("Пароль должен содержать минимум 6 символов");
+        }
+
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Пользователь не найден: " + id));
+                .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + id));
+
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         String oldUsername = user.getUsername();
 
@@ -80,37 +91,22 @@ public class UserService {
 
             if (existsByUsername(dto.getUsername())) {
                 log.error("\"Логин уже занят: {}", dto.getUsername());
-                throw new IllegalArgumentException("Логин уже занят: " + dto.getUsername());
+                throw new UserNameNotFreeException("Логин уже занят: " + dto.getUsername());
             }
             user.setUsername(dto.getUsername());
         }
 
         User saved = userRepository.save(user);
-        log.info("Логин пользователя с id = {} изменён: {} -> {}", id, oldUsername, saved.getUsername());
+        log.info("Пользователь с id = {} изменён: {} -> {}", id, oldUsername, saved.getUsername());
         return userMapper.toDto(saved);
     }
-
-    @Transactional
-    public UserResponseDto updatePassword(Long id, UserRequestDto dto) {
-        if (dto.getPassword() == null || dto.getPassword().length() < 6) {
-            log.error("Пароль должен содержать минимум 6 символов");
-            throw new IllegalArgumentException("Пароль должен содержать минимум 6 символов");
-        }
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Пользователь не найден: " + id));
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        User saved = userRepository.save(user);
-        log.info("Пароль пользователя {} изменён", id);
-
-        return userMapper.toDto(saved);
-    };
 
     @Transactional
     public UserResponseDto makeUnavailable (Long userId){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("Пользователь не найден: {}", userId);
-                    return new NoSuchElementException("Пользователь не найден: " + userId);
+                    return new UserNotFoundCustomException("Пользователь не найден: " + userId);
                 });
 
         user.setEnabled(false);
@@ -127,7 +123,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.warn("Пользователь не найден: {}", userId);
-                    return new NoSuchElementException("Пользователь не найден: " + userId);
+                    return new UserNotFoundCustomException("Пользователь не найден: " + userId);
                 });
 
         Set<Role> roles = user.getRoles();
@@ -158,7 +154,7 @@ public class UserService {
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
             log.error("Пользователь не найден с id = {} ", id);
-            throw new NoSuchElementException("Пользователь не найден: " + id);
+            throw new UserNotFoundCustomException("Пользователь не найден: " + id);
         }
         userRepository.deleteById(id);
         log.info("Пользователь с id = {} удалён", id);
