@@ -335,4 +335,48 @@ class CardControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Ошибка во время перевода денежных средств"));
     }
+
+    @Test
+    @DisplayName("PATCH /block/{id} — успех 200 и корректный JSON")
+    void block_success() throws Exception {
+        long cardId = 7L;
+        long userId = 10L;
+
+        CardResponseDto resp = new CardResponseDto();
+        resp.setId(cardId);
+        resp.setUserId(userId);
+        resp.setStatus(CardStatus.BLOCKED);
+        resp.setMaskedNumber("**** **** **** 1111");
+        resp.setBalance( new BigDecimal("123.45"));
+
+        Mockito.when(service.blockByUser(cardId, userId)).thenReturn(resp);
+
+        mockMvc.perform(patch("/api/cards/block/{id}", cardId)
+                        .param("userId", String.valueOf(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value((int) cardId))
+                .andExpect(jsonPath("$.maskedNumber").value("**** **** **** 1111"))
+                .andExpect(jsonPath("$.status").value("BLOCKED"))
+                .andExpect(jsonPath("$.balance").value(123.45))
+                .andExpect(jsonPath("$.userId").value((int) userId));
+
+        verify(service).blockByUser(cardId, userId);
+    }
+
+    @Test
+    @DisplayName("PATCH /block/{id} — 404 если карта не найдена")
+    void blockByUser_notFound() throws Exception {
+        long cardId = 999L;
+        long userId = 10L;
+
+        Mockito.when(service.blockByUser(anyLong(), anyLong()))
+                .thenThrow(new CardNotFoundException("Карта не найдена: " + cardId));
+
+        mockMvc.perform(patch("/api/cards/block/{id}", cardId)
+                        .param("userId", String.valueOf(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Карта не найдена"));
+    }
 }

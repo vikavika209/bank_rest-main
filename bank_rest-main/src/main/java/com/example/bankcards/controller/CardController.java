@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +40,20 @@ public class CardController {
         return ResponseEntity.ok(service.getById(id));
     }
 
+    @GetMapping("/all/{id}")
+    public ResponseEntity<Page<CardResponseDto>> getAllByUserId(
+            @PathVariable("id") Long userId,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ){
+        log.info("Вызван getAllByUserId userId={}, page={}, size={}",
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(service.getAllByUserId(userId, pageable));
+    }
+
     @GetMapping
-    public ResponseEntity<Page<CardResponseDto>> getAllCards(Pageable pageable) {
+    public ResponseEntity<Page<CardResponseDto>> getAllCards(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         log.info("Вызван getAllCards");
         return ResponseEntity.ok(service.getAll(pageable));
     }
@@ -65,7 +79,7 @@ public class CardController {
             @PathVariable Long id,
             @RequestParam Long userId
     ){
-        log.info("Вызван blockCardByIdForUser: {}", id);
+        log.info("Вызван blockCardById: {}", id);
         return ResponseEntity.ok(service.blockByUser(id, userId));
     }
 

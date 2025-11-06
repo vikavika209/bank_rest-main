@@ -170,15 +170,11 @@ public class CardService {
 
     public Page<CardResponseDto> getAllByUserId(Long userId, Pageable pageable){
         Page<Card> cards = cardRepository.findByUser_Id(userId, pageable);
+        Page<CardResponseDto> page = cards.map(mapper::toDto);
 
-        List<CardResponseDto> content = cards
-                .getContent()
-                .stream()
-                .map(mapper::toDto)
-                .toList();
-
-        log.info("Найдено карт: {} для пользователя: id = {}", content.size(), userId);
-        return new PageImpl<>(content, pageable, cards.getTotalElements());
+        log.info("Найдено карт (всего): {} для userId={}; на странице: {}",
+                cards.getTotalElements(), userId, page.getNumberOfElements());
+        return page;
     }
 
     private void verify(Long cardId, Long userId){
