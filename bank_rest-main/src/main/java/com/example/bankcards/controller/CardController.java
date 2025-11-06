@@ -12,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("api/cards")
 @RequiredArgsConstructor
@@ -50,12 +52,21 @@ public class CardController {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
-    @PatchMapping("/{id}/block")
-    public ResponseEntity<CardResponseDto> blockCardById(
+    @PatchMapping("/admin/block/{id}")
+    public ResponseEntity<CardResponseDto> blockCardByIdForAdmin(
             @PathVariable Long id
     ){
         log.info("Вызван blockCardById: {}", id);
         return ResponseEntity.ok(service.block(id));
+    }
+
+    @PatchMapping("/block/{id}")
+    public ResponseEntity<CardResponseDto> blockCardByIdForUser(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ){
+        log.info("Вызван blockCardByIdForUser: {}", id);
+        return ResponseEntity.ok(service.blockByUser(id, userId));
     }
 
     @DeleteMapping("/{id}")
@@ -65,5 +76,17 @@ public class CardController {
         log.info("Вызван deleteCardById: {}", id);
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/transfer")
+    public ResponseEntity<String> transferBetweenUserCards(
+            @RequestParam("cardNumberFrom") String cardNumberFrom,
+            @RequestParam("cardNumberTo") String cardNumberTo,
+            @RequestParam("userId") Long userId,
+            @RequestParam("amount") BigDecimal amount
+    ){
+        log.info("Вызван transferBetweenUserCards");
+        service.transferBetweenUserCards(userId, cardNumberFrom, cardNumberTo, amount);
+        return ResponseEntity.ok("Перевод выполнен");
     }
 }

@@ -89,4 +89,28 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorDto);
     }
+
+    @ExceptionHandler(NotVerifyException.class)
+    public ResponseEntity<ErrorResponseDto> NotVerifyExceptionHandler(Exception e){
+        log.error("Обнаружено Not Verify Exception: {}", e.getMessage());
+
+        var errorDto = new ErrorResponseDto(
+                "Карта не принадлежит пользователю",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorDto);
+    }
+
+    @ExceptionHandler(TransferException.class)
+    public ResponseEntity<ErrorResponseDto> TransferExceptionHandler(Exception e){
+        log.error("Обнаружено Transfer Exception: {}", e.getMessage());
+
+        var errorDto = new ErrorResponseDto(
+                "Ошибка во время перевода денежных средств",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
+    }
 }
