@@ -4,13 +4,11 @@ import com.example.bankcards.dto.CardCrateDto;
 import com.example.bankcards.dto.CardResponseDto;
 import com.example.bankcards.dto.CardUpdateDto;
 import com.example.bankcards.entity.CardStatus;
-import com.example.bankcards.exception.CardNotFoundException;
-import com.example.bankcards.exception.CardNumberIsNotFree;
-import com.example.bankcards.exception.GlobalExceptionHandler;
-import com.example.bankcards.exception.UserNotFoundCustomException;
+import com.example.bankcards.exception.*;
 import com.example.bankcards.service.CardService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -246,7 +244,7 @@ class CardControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/cards/{id}/block — 200 OK при успешной блокировке")
+    @DisplayName("PATCH /api/cards/admin/block/{id} — 200 OK при успешной блокировке")
     void block_ok() throws Exception {
         CardResponseDto resp = CardResponseDto.builder()
                 .id(9L)
@@ -255,18 +253,18 @@ class CardControllerTest {
 
         when(service.block(9L)).thenReturn(resp);
 
-        mockMvc.perform(patch("/api/cards/{id}/block", 9))
+        mockMvc.perform(patch("/api/cards/admin/block/{id}", 9))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(9)))
                 .andExpect(jsonPath("$.status", is("BLOCKED")));
     }
 
     @Test
-    @DisplayName("PATCH /api/cards/{id}/block — 404 если карта не найдена")
+    @DisplayName("PATCH /api/cards/admin/block/{id} — 404 если карта не найдена")
     void block_notFound() throws Exception {
         when(service.block(9L)).thenThrow(new CardNotFoundException("Карта не найдена: 9"));
 
-        mockMvc.perform(patch("/api/cards/{id}/block", 9))
+        mockMvc.perform(patch("/api/cards/admin/block/{id}", 9))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", is("Карта не найдена")))
                 .andExpect(jsonPath("$.detailedMessage", containsString("9")));
@@ -293,5 +291,92 @@ class CardControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", is("Карта не найдена")))
                 .andExpect(jsonPath("$.detailedMessage", containsString("11")));
+    }
+
+    @Test
+    @DisplayName("Успешный перевод — статус 200")
+    void transfer_success() throws Exception {
+
+        Long userId = 10L;
+        String from = "4111111111111111";
+        String to   = "4222222222222222";
+        BigDecimal amount = new BigDecimal("100.00");
+
+        mockMvc.perform(put("/api/cards/transfer")
+                        .param("userId", String.valueOf(userId))
+                        .param("cardNumberFrom", from)
+                        .param("cardNumberTo", to)
+                        .param("amount", amount.toPlainString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Перевод выполнен"));
+
+        Mockito.verify(service).transferBetweenUserCards(userId, from, to, amount);
+    }
+
+    @Test
+    @DisplayName("Ошибка перевода — сервис выбрасывает TransferException, возвращается 400")
+    void transfer_error() throws Exception {
+        Long userId = 10L;
+        String from = "4111111111111111";
+        String to   = "4222222222222222";
+        BigDecimal amount = new BigDecimal("100.00");
+
+        Mockito.doThrow(new TransferException("Недостаточно средств"))
+                .when(service)
+                .transferBetweenUserCards(anyLong(), anyString(), anyString(), any(BigDecimal.class));
+
+        mockMvc.perform(put("/api/cards/transfer")
+                        .param("userId", String.valueOf(userId))
+                        .param("cardNumberFrom", from)
+                        .param("cardNumberTo", to)
+                        .param("amount", amount.toPlainString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Ошибка во время перевода денежных средств"));
+    }
+
+    @Test
+    @DisplayName("PATCH /block/{id} — успех 200 и корректный JSON")
+    void block_success() throws Exception {
+        long cardId = 7L;
+        long userId = 10L;
+
+        CardResponseDto resp = new CardResponseDto();
+        resp.setId(cardId);
+        resp.setUserId(userId);
+        resp.setStatus(CardStatus.BLOCKED);
+        resp.setMaskedNumber("**** **** **** 1111");
+        resp.setBalance( new BigDecimal("123.45"));
+
+        Mockito.when(service.blockByUser(cardId, userId)).thenReturn(resp);
+
+        mockMvc.perform(patch("/api/cards/block/{id}", cardId)
+                        .param("userId", String.valueOf(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value((int) cardId))
+                .andExpect(jsonPath("$.maskedNumber").value("**** **** **** 1111"))
+                .andExpect(jsonPath("$.status").value("BLOCKED"))
+                .andExpect(jsonPath("$.balance").value(123.45))
+                .andExpect(jsonPath("$.userId").value((int) userId));
+
+        verify(service).blockByUser(cardId, userId);
+    }
+
+    @Test
+    @DisplayName("PATCH /block/{id} — 404 если карта не найдена")
+    void blockByUser_notFound() throws Exception {
+        long cardId = 999L;
+        long userId = 10L;
+
+        Mockito.when(service.blockByUser(anyLong(), anyLong()))
+                .thenThrow(new CardNotFoundException("Карта не найдена: " + cardId));
+
+        mockMvc.perform(patch("/api/cards/block/{id}", cardId)
+                        .param("userId", String.valueOf(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Карта не найдена"));
     }
 }

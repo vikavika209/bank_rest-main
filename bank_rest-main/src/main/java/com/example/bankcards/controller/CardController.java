@@ -9,8 +9,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("api/cards")
@@ -36,8 +40,20 @@ public class CardController {
         return ResponseEntity.ok(service.getById(id));
     }
 
+    @GetMapping("/all/{id}")
+    public ResponseEntity<Page<CardResponseDto>> getAllByUserId(
+            @PathVariable("id") Long userId,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ){
+        log.info("Вызван getAllByUserId userId={}, page={}, size={}",
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(service.getAllByUserId(userId, pageable));
+    }
+
     @GetMapping
-    public ResponseEntity<Page<CardResponseDto>> getAllCards(Pageable pageable) {
+    public ResponseEntity<Page<CardResponseDto>> getAllCards(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         log.info("Вызван getAllCards");
         return ResponseEntity.ok(service.getAll(pageable));
     }
@@ -50,12 +66,29 @@ public class CardController {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
-    @PatchMapping("/{id}/block")
-    public ResponseEntity<CardResponseDto> blockCardById(
+    @PatchMapping("/admin/block/{id}")
+    public ResponseEntity<CardResponseDto> blockCardByIdForAdmin(
             @PathVariable Long id
     ){
         log.info("Вызван blockCardById: {}", id);
         return ResponseEntity.ok(service.block(id));
+    }
+
+    @PatchMapping("/admin/activate/{id}")
+    public ResponseEntity<CardResponseDto> activateCardByIdForAdmin(
+            @PathVariable Long id
+    ){
+        log.info("Вызван activateCardByIdForAdmin: {}", id);
+        return ResponseEntity.ok(service.activate(id));
+    }
+
+    @PatchMapping("/block/{id}")
+    public ResponseEntity<CardResponseDto> blockCardByIdForUser(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ){
+        log.info("Вызван blockCardById: {}", id);
+        return ResponseEntity.ok(service.blockByUser(id, userId));
     }
 
     @DeleteMapping("/{id}")
@@ -65,5 +98,17 @@ public class CardController {
         log.info("Вызван deleteCardById: {}", id);
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/transfer")
+    public ResponseEntity<String> transferBetweenUserCards(
+            @RequestParam("cardNumberFrom") String cardNumberFrom,
+            @RequestParam("cardNumberTo") String cardNumberTo,
+            @RequestParam("userId") Long userId,
+            @RequestParam("amount") BigDecimal amount
+    ){
+        log.info("Вызван transferBetweenUserCards");
+        service.transferBetweenUserCards(userId, cardNumberFrom, cardNumberTo, amount);
+        return ResponseEntity.ok("Перевод выполнен");
     }
 }
