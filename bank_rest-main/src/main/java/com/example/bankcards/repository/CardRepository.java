@@ -7,15 +7,29 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.Optional;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
 
     Page<Card> findByUser_Id(Long id, Pageable pageable);
     Optional<Card> findByCardNumberEncryptedAndUser_Id(String enc, Long userId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+    UPDATE Card c
+    SET c.status = :expired
+    WHERE c.status IN (:statuses)
+      AND c.expiryDate < CURRENT_DATE
+""")
+    int markExpiredForStatuses(
+            @Param("expired") CardStatus expired,
+            @Param("statuses") Collection<CardStatus> statuses
+    );
 
     @Query("""
         SELECT c FROM Card c

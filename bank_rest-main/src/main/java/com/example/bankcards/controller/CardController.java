@@ -74,6 +74,14 @@ public class CardController {
         return ResponseEntity.ok(service.block(id));
     }
 
+    @PatchMapping("/admin/activate/{id}")
+    public ResponseEntity<CardResponseDto> activateCardByIdForAdmin(
+            @PathVariable Long id
+    ){
+        log.info("Вызван activateCardByIdForAdmin: {}", id);
+        return ResponseEntity.ok(service.activate(id));
+    }
+
     @PatchMapping("/block/{id}")
     public ResponseEntity<CardResponseDto> blockCardByIdForUser(
             @PathVariable Long id,
