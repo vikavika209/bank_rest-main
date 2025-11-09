@@ -18,4 +18,5 @@ public class CryptoConfig {
     public CryptoService cryptoService() {
         return new CryptoService(key, transformation);
     }
+
 }

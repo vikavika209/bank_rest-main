@@ -492,7 +492,7 @@ class CardServiceTest {
         InOrder inOrder = inOrder(cardRepository);
         inOrder.verify(cardRepository).findByCardNumberEncryptedAndUser_Id(encFrom, userId);
         inOrder.verify(cardRepository).findByCardNumberEncryptedAndUser_Id(encTo, userId);
-        inOrder.verify(cardRepository).lockByIdAndUserAndStatus(3L, userId, CardStatus.ACTIVE); // low
-        inOrder.verify(cardRepository).lockByIdAndUserAndStatus(5L, userId, CardStatus.ACTIVE); // high
+        inOrder.verify(cardRepository).lockByIdAndUserAndStatus(3L, userId, CardStatus.ACTIVE);
+        inOrder.verify(cardRepository).lockByIdAndUserAndStatus(5L, userId, CardStatus.ACTIVE);
     }
 }

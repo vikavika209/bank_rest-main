@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-seed-user-roles
+      author: vikavika209
+      changes:
+        # ADMIN: ROLE_ADMIN и ROLE_USER
+        - insert:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueNumeric: 1
+              - column:
+                  name: role
+                  value: ROLE_ADMIN
+        - insert:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueNumeric: 1
+              - column:
+                  name: role
+                  value: ROLE_USER
+
+        # USER: только ROLE_USER
+        - insert:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueNumeric: 2
+              - column:
+                  name: role
+                  value: ROLE_USER
+
