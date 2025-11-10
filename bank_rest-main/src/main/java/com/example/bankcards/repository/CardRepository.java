@@ -51,4 +51,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
             @Param("userId") Long userId,
             @Param("status") CardStatus status
     );
+
+    Optional<Card> findByCardNumberEncryptedAndUser_IdAndStatus(
+            String cardNumberEncrypted, Long userId, CardStatus status);
 }

@@ -10,10 +10,8 @@ import com.example.bankcards.exception.*;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.CardMapper;
-import com.example.bankcards.util.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -25,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -33,17 +30,24 @@ import java.util.function.Supplier;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class CardService {
     private final CardRepository cardRepository;
     private final UserRepository userRepository;
     private final CardMapper mapper;
     private final CryptoService cryptoService;
-    private static final List<CardStatus> STATUSES = List.of(CardStatus.ACTIVE, CardStatus.BLOCKED);
-
-    @Value("${card.crypto.validity}")
     private final String validityMonths;
-    private final UserMapper userMapper;
+
+    public CardService(CardRepository cardRepository,
+                       UserRepository userRepository,
+                       CardMapper mapper,
+                       CryptoService cryptoService,
+                       @Value("${card.crypto.validity}") String validityMonths) {
+        this.cardRepository = cardRepository;
+        this.userRepository = userRepository;
+        this.mapper = mapper;
+        this.cryptoService = cryptoService;
+        this.validityMonths = validityMonths;
+    }
 
     @Transactional(readOnly = true)
     public CardResponseDto getById(Long id) {
@@ -266,7 +270,20 @@ public class CardService {
     @Transactional
     @Scheduled(cron = "0 0 3 * * *")
     public void setExpired(){
-        int updated = cardRepository.markExpiredForStatuses(CardStatus.EXPIRED, STATUSES);
+        List<CardStatus> statuses = List.of(CardStatus.ACTIVE, CardStatus.BLOCKED);
+        int updated = cardRepository.markExpiredForStatuses(CardStatus.EXPIRED, statuses);
         log.info("Помечено как EXPIRED: {} карт", updated);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getBalance(Long userId, String cardNumber){
+        String cardNumberEncrypted = cryptoService.encrypt(cardNumber);
+        String cardNumberMasked = cryptoService.getMaskedNumber(cardNumber);
+        Card card = cardRepository
+                .findByCardNumberEncryptedAndUser_IdAndStatus(cardNumberEncrypted, userId, CardStatus.ACTIVE)
+                .orElseThrow(
+                        () -> new CardNotFoundException("Карта не найдена: " + cardNumberMasked)
+                );
+        return card.getBalance();
     }
 }
