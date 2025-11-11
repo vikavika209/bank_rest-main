@@ -45,7 +45,7 @@ public class CardController {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @GetMapping("/all/{id}")
+    @GetMapping("/all")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Page<CardResponseDto>> getAllByUserId(
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
@@ -83,6 +83,15 @@ public class CardController {
         return ResponseEntity.ok(service.block(id));
     }
 
+    @PatchMapping("/admin/unblock/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CardResponseDto> unblockCardByIdForAdmin(
+            @PathVariable Long id
+    ){
+        log.info("Вызван unblockCardById: {}", id);
+        return ResponseEntity.ok(service.unblock(id));
+    }
+
     @PatchMapping("/admin/activate/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CardResponseDto> activateCardByIdForAdmin(
@@ -102,7 +111,7 @@ public class CardController {
         return ResponseEntity.ok(service.blockByUser(id, userId));
     }
 
-    @DeleteMapping("/admin/{id}  ")
+    @DeleteMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCardById(
             @PathVariable("id") Long id
