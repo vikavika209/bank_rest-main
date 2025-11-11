@@ -24,4 +24,8 @@ card:
     transformation: AES/ECB/PKCS5Padding
     validity: ${CARD_VALIDITY_PERIOD:36}
 
-
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

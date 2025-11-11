@@ -1,7 +1,7 @@
 package com.example.bankcards.service;
 
 
-import com.example.bankcards.dto.CardCrateDto;
+import com.example.bankcards.dto.CardCreateDto;
 import com.example.bankcards.dto.CardResponseDto;
 import com.example.bankcards.dto.CardUpdateDto;
 import com.example.bankcards.entity.Card;
@@ -137,7 +137,7 @@ class CardServiceTest {
     @Test
     @DisplayName("create — успешно создает карту: шифрует номер, устанавливает expiry по validity, баланс=0, статус по умолчанию ACTIVE")
     void create_ok() {
-        CardCrateDto req = CardCrateDto.builder()
+        CardCreateDto req = CardCreateDto.builder()
                 .cardNumber("4111111111111111")
                 .userId(10L)
                 .build();
@@ -175,7 +175,7 @@ class CardServiceTest {
     @Test
     @DisplayName("create — бросает CardNumberIsNotFree, если номер уже занят")
     void create_duplicateNumber() {
-        CardCrateDto req = CardCrateDto.builder()
+        CardCreateDto req = CardCreateDto.builder()
                 .cardNumber("4111111111111111")
                 .userId(10L)
                 .build();
@@ -196,7 +196,7 @@ class CardServiceTest {
     @Test
     @DisplayName("create — бросает UserNotFoundCustomException, если userId неизвестен")
     void create_userNotFound() {
-        CardCrateDto req = CardCrateDto.builder()
+        CardCreateDto req = CardCreateDto.builder()
                 .userId(999L)
                 .cardNumber("4111111111111111")
                 .build();

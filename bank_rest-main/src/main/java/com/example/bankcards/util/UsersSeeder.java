@@ -19,16 +19,16 @@ public class UsersSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-//            User admin = new User();
-//            admin.setUsername("admin");
-//            admin.setPassword(encoder.encode("123456"));
-//            admin.setRoles(Set.of(Role.ROLE_ADMIN));
-//            userRepository.save(admin);
-//
-//            User user = new User();
-//            user.setUsername("user");
-//            user.setPassword(encoder.encode("123456"));
-//            user.setRoles(Set.of(Role.ROLE_USER));
-//            userRepository.save(user);
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(encoder.encode("123456"));
+            admin.setRoles(Set.of(Role.ROLE_ADMIN));
+            userRepository.save(admin);
+
+            User user = new User();
+            user.setUsername("user");
+            user.setPassword(encoder.encode("123456"));
+            user.setRoles(Set.of(Role.ROLE_USER));
+            userRepository.save(user);
     }
 }

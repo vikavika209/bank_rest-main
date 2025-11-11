@@ -1,6 +1,6 @@
 package com.example.bankcards.service;
 
-import com.example.bankcards.dto.CardCrateDto;
+import com.example.bankcards.dto.CardCreateDto;
 import com.example.bankcards.dto.CardResponseDto;
 import com.example.bankcards.dto.CardUpdateDto;
 import com.example.bankcards.entity.Card;
@@ -10,7 +10,6 @@ import com.example.bankcards.exception.*;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.CardMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -71,11 +70,11 @@ public class CardService {
         return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
-    public CardResponseDto create(CardCrateDto cardCrateDto) {
-        User user = userRepository.findById(cardCrateDto.getUserId())
-                .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + cardCrateDto.getUserId()));
+    public CardResponseDto create(CardCreateDto cardCreateDto) {
+        User user = userRepository.findById(cardCreateDto.getUserId())
+                .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + cardCreateDto.getUserId()));
 
-        String encrypted = cryptoService.encrypt(cardCrateDto.getCardNumber());
+        String encrypted = cryptoService.encrypt(cardCreateDto.getCardNumber());
 
         if (cardRepository.findByCardNumberEncrypted(encrypted).isPresent()) {
             throw new CardNumberIsNotFree("Карта уже существует: {}");

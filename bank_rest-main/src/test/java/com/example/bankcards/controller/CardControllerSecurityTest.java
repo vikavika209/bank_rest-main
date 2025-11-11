@@ -1,6 +1,6 @@
 package com.example.bankcards.controller;
 
-import com.example.bankcards.dto.CardCrateDto;
+import com.example.bankcards.dto.CardCreateDto;
 import com.example.bankcards.dto.CardResponseDto;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.exception.GlobalExceptionHandler;
@@ -81,7 +81,7 @@ class CardControllerSecurityTest {
                 .expiryDate(LocalDate.now().plusYears(3))
                 .status(CardStatus.ACTIVE).balance(BigDecimal.ZERO).build();
 
-        when(service.create(any(CardCrateDto.class))).thenReturn(resp);
+        when(service.create(any(CardCreateDto.class))).thenReturn(resp);
 
         mockMvc.perform(post("/api/cards/admin")
                         .contentType(MediaType.APPLICATION_JSON)
