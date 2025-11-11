@@ -16,8 +16,17 @@ import java.util.Optional;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
 
+
+    @Query("""
+    SELECT c FROM Card c
+    WHERE c.id = :cardId
+      AND c.status = :status
+""")
+    Optional<Card> findByIdAndStatus(
+            @Param("cardId") Long cardId,
+            @Param("status") CardStatus status);
+
     Page<Card> findByUser_Id(Long id, Pageable pageable);
-    Optional<Card> findByCardNumberEncryptedAndUser_Id(String enc, Long userId);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
@@ -52,6 +61,24 @@ public interface CardRepository extends JpaRepository<Card, Long> {
             @Param("status") CardStatus status
     );
 
+
+    @Query("""
+    SELECT c FROM Card c
+    WHERE c.cardNumberEncrypted = :cardNumberEncrypted
+      AND c.user.id = :userId
+      AND c.status = :status
+""")
     Optional<Card> findByCardNumberEncryptedAndUser_IdAndStatus(
-            String cardNumberEncrypted, Long userId, CardStatus status);
+            @Param("cardNumberEncrypted") String cardNumberEncrypted,
+            @Param("userId") Long userId,
+            @Param("status") CardStatus status);
+
+    @Query("""
+    SELECT c FROM Card c
+    WHERE c.cardNumberEncrypted = :cardNumberEncrypted
+      AND c.user.id = :userId
+""")
+    Optional<Card> findByCardNumberEncryptedAndUser_Id(
+            @Param("cardNumberEncrypted") String enc,
+            @Param("userId") Long userId);
 }

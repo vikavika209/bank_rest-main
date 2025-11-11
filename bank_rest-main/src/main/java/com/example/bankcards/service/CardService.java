@@ -97,8 +97,8 @@ public class CardService {
 
     @Transactional
     public CardResponseDto update(Long id, CardUpdateDto dto) {
-        Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + id));
+        Card card = cardRepository.findByIdAndStatus(id,  CardStatus.ACTIVE)
+                .orElseThrow(() -> new CardNotFoundException("Активная карта не найдена: " + id));
 
         if (dto.getUserId() != null && !Objects.equals(dto.getUserId(), card.getUser().getId())) {
             User user = userRepository.findById(dto.getUserId())
@@ -140,6 +140,17 @@ public class CardService {
 
         Card save = cardRepository.save(card);
         log.info("Карта заблокирована: id = {}", save.getId());
+
+        return mapper.toDto(save);
+    }
+
+    public CardResponseDto unblock(Long id) {
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + id));
+        card.setStatus(CardStatus.ACTIVE);
+
+        Card save = cardRepository.save(card);
+        log.info("Карта разблокирована: id = {}", save.getId());
 
         return mapper.toDto(save);
     }
@@ -218,6 +229,12 @@ public class CardService {
             String cardNumberTo,
             BigDecimal amount
     ) {
+        log.info("Запрошен перевод с карты: " +
+                "номер = {} " +
+                "на карту: номер = {}; " +
+                "сумма = {}; " +
+                "пользователь: id = {}",
+                cardNumberFrom, cardNumberTo, amount, userId);
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new TransferException("Сумма перевода должна быть больше 0");
@@ -228,42 +245,65 @@ public class CardService {
 
         amount = amount.setScale(2, RoundingMode.HALF_UP);
 
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundCustomException("Пользователь не найден: " + userId));
+        log.info("Пользователь найден: id = {}", user.getId());
 
         String encFrom = cryptoService.encrypt(cardNumberFrom);
+        log.info("Зашифровали номер from: {}", encFrom);
         String encTo = cryptoService.encrypt(cardNumberTo);
+        log.info("Зашифровали номер to: {}", encTo);
 
         Card cardFrom = cardRepository.findByCardNumberEncryptedAndUser_Id(encFrom, userId)
-                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + cryptoService.getMaskedNumber(cardNumberFrom)));
+                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + cryptoService.getMaskedNumber(encFrom)));
+        log.info("Найдена cardFrom: id = {}", cardFrom.getId());
+
         Card cardTo = cardRepository.findByCardNumberEncryptedAndUser_Id(encTo, userId)
-                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + cryptoService.getMaskedNumber(cardNumberTo)));
+                .orElseThrow(() -> new CardNotFoundException("Карта не найдена: " + cryptoService.getMaskedNumber(encTo)));
+        log.info("Найдена cardTo: id = {}", cardTo.getId());
+
 
         Card lowId = cardFrom.getId() < cardTo.getId() ? cardFrom : cardTo;
+        log.info("Присвоено lowId: id = {}", lowId.getId());
+
         Card highId = lowId.equals(cardFrom) ? cardTo : cardFrom;
+        log.info("Присвоено highId: id = {}", highId.getId());
 
         Card cardFirstLocked = cardRepository.lockByIdAndUserAndStatus(lowId.getId(), userId, CardStatus.ACTIVE)
                 .orElseThrow(() -> new CardNotFoundException("Активная карта не найдена: id = " + lowId.getId()));
+        log.info("Присвоено cardFirstLocked: id = {}", cardFirstLocked.getId());
+
         Card cardSecondLocked = cardRepository.lockByIdAndUserAndStatus(highId.getId(), userId, CardStatus.ACTIVE)
                 .orElseThrow(() -> new CardNotFoundException("Активная карта не найдена: id = " + highId.getId()));
+        log.info("Присвоено cardSecondLocked: id = {}", cardSecondLocked.getId());
 
         cardFrom = cardFirstLocked.getId().equals(cardFrom.getId()) ? cardFirstLocked : cardSecondLocked;
+        log.info("Присвоено cardFrom: id = {}", cardFrom.getId());
+
         cardTo = cardFrom.equals(cardFirstLocked) ? cardSecondLocked : cardFirstLocked;
+        log.info("Присвоено cardTo: id = {}", cardTo.getId());
 
         if (cardFrom.getBalance().compareTo(amount) < 0) {
-            String maskedNumber = cryptoService.getMaskedNumber(cardNumberFrom);
+            String maskedNumber = cryptoService.getMaskedNumber(encFrom);
+            log.info("После проверки баланса maskedNumber = {}", maskedNumber);
             throw new TransferException("Недостаточно средств на карте " + maskedNumber);
         }
 
         cardFrom.setBalance(cardFrom.getBalance().subtract(amount));
-        cardTo.setBalance(cardTo.getBalance().add(amount));
+        log.info("Новый баланс карты: id = {} равен {}", cardFrom.getId(), cardFrom.getBalance());
 
-        cardRepository.save(cardFrom);
-        cardRepository.save(cardTo);
+        cardTo.setBalance(cardTo.getBalance().add(amount));
+        log.info("Новый баланс карты: id = {} равен {}", cardTo.getId(), cardTo.getBalance());
+
+        Card savedFrom = cardRepository.save(cardFrom);
+        log.info("Успешное сохранение карты: id = {}", savedFrom.getId());
+
+        Card savedTo = cardRepository.save(cardTo);
+        log.info("Успешное сохранение карты: id = {}", savedTo.getId());
 
         log.info("Перевод {} выполнен: from {} -> to {}; новые балансы: from={}, to={}",
                 amount,
-                cryptoService.getMaskedNumber(cardNumberFrom), cryptoService.getMaskedNumber(cardNumberTo),
+                cryptoService.getMaskedNumber(encFrom), cryptoService.getMaskedNumber(encTo),
                 cardFrom.getBalance(), cardTo.getBalance());
     }
 
@@ -277,8 +317,10 @@ public class CardService {
 
     @Transactional(readOnly = true)
     public BigDecimal getBalance(Long userId, String cardNumber){
+        log.info("Получен номер карты: {} для пользователя: id = {}", cardNumber, userId);
         String cardNumberEncrypted = cryptoService.encrypt(cardNumber);
-        String cardNumberMasked = cryptoService.getMaskedNumber(cardNumber);
+        log.info("Зашифровали номер: {}", cardNumberEncrypted);
+        String cardNumberMasked = cryptoService.getMaskedNumber(cardNumberEncrypted);
         Card card = cardRepository
                 .findByCardNumberEncryptedAndUser_IdAndStatus(cardNumberEncrypted, userId, CardStatus.ACTIVE)
                 .orElseThrow(

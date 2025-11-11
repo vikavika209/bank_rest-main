@@ -30,7 +30,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/bankcards
       DB_USER: bankcards
       DB_PASS: bankcards
-      JWT_SECRET: "this_is_dev_secret"
+      JWT_SECRET: "uo1Y8c4fQp2nZr7tM3xK9vWs5bHd0jLa"
       CARD_CRYPTO_KEY: "base64:3dM7xkQJqQ6f8X2o6lCw7o7f2k0l0mHjJcJmJ0y0j2JmJ0y0j2JmJ0y0j2I="
 
     ports:
