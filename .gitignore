@@ -1,2 +1,4 @@
 # Project exclude paths
 /bank_rest-main/target/
+
+.idea/
